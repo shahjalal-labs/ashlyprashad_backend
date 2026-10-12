@@ -1,0 +1,209 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName     String
+  email        String     @unique
+  password     String
+  age          String?
+  readLevel    String?
+  goals        String?
+  readTiming   Int?
+  readDuration Int?
+  fcmToken     String?
+  profileImage String     @default("https://i.ibb.co.com/nrs3FjM/images.png")
+  points       Int        @default(0)
+  role         UserRole   @default(User)
+  status       UserStatus @default(Active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model PendingUser {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  fullName String
+  email    String @unique
+  password String
+
+  @@map("pending_users")
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  otpCode   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("otps")
+}
+
+model Reading {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  nid         Int
+  totalPages  Int
+  currentPage Int      @default(1)
+  coverImage  String
+  title       String
+  rating      Float
+  readCount   Int      @default(0)
+  readingTime Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, nid])
+  @@map("readings")
+}
+
+model SaveBook {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  nid        Int
+  totalPages Int
+  coverImage String
+  title      String
+  rating     Float
+  readCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, nid])
+  @@map("save_books")
+}
+
+model Quizz {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  bookId    Int        @unique
+  bookName  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  question  Question[]
+
+  @@map("quizzes")
+}
+
+model Question {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  quizzId           String              @db.ObjectId
+  questionNo        Int
+  content           String
+  options           String[]
+  correctAnswers    String[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  quizz             Quizz               @relation(fields: [quizzId], references: [id], onDelete: Cascade)
+  participateAnswer ParticipateAnswer[]
+
+  @@index([quizzId])
+  @@map("questions")
+}
+
+model Participate {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String              @db.ObjectId
+  quizzId           String              @db.ObjectId
+  score             Float?
+  isComplete        Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  participateAnswer ParticipateAnswer[]
+
+  @@unique([userId, quizzId])
+  @@map("participates")
+}
+
+model ParticipateAnswer {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  participateId   String      @db.ObjectId
+  questionId      String      @db.ObjectId
+  selectedAnswers String[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  participate     Participate @relation(fields: [participateId], references: [id], onDelete: Cascade)
+  question        Question    @relation(fields: [questionId], references: [id])
+
+  @@unique([participateId, questionId])
+  @@map("participate_answers")
+}
+
+model Plan {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  planName      String
+  price         Float
+  interval      PlanInterval @default(month)
+  intervalCount Int          @default(1)
+  priceId       String
+  productId     String
+  ideal         String
+  accessBooks   String
+  features      String[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("plans")
+}
+
+model Progress {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  progressDate DateTime
+  startTime    DateTime
+  endTime      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, progressDate])
+  @@map("progress")
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  receiverId String   @db.ObjectId
+  title      String
+  body       String
+  isRead     Boolean  @default(false)
+  isAdmin    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  endpoint  String   @unique
+  auth      String
+  p256dh    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("push_subscribes")
+}
+
+enum PlanInterval {
+  month
+  year
+}
+
+enum UserStatus {
+  Active
+  Blocked
+  Deleted
+}
+
+enum UserRole {
+  Admin
+  User
+}
